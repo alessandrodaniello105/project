@@ -2,7 +2,7 @@ import { PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Musician, supabase } from '../../lib/supabase';
 
-const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Other'] as const;
+const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums', 'Other'] as const;
 
 type Props = {
   onMusicianAdded: (musician: Musician) => void;
@@ -50,15 +50,16 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex gap-4 items-end">
     <div className="flex-1">
-      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor="musicianName" className="block text-sm font-medium text-gray-700 mb-1">
         Name
       </label>
       <input
         type="text"
-        id="name"
+        id="musicianName"
+        autoComplete='false'
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        className="w-full rounded-md px-2 border-gray-300 leading-[40px] shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         required
       />
     </div>
@@ -71,7 +72,7 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
         id="instrument"
         value={instrument}
         onChange={(e) => setInstrument(e.target.value as Musician['instrument'])}
-        className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        className="w-full rounded-md h-10 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
       >
         {INSTRUMENTS.map((inst) => (
           <option key={inst} value={inst}>

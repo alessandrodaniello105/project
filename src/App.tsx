@@ -5,6 +5,10 @@ import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LoginPage } from './components/auth/LoginPage';
 import { Musicians } from './components/pages/Musicians';
+import { Bands } from './components/pages/Bands';
+import { RandomBands } from './components/pages/RandomBands';
+// import { BandForm } from './components/bands/BandForm';
+
 // import { MusicianForm } from './components/musicians/MusicianForm';
 
 
@@ -15,6 +19,8 @@ function App() {
   // const [name, setName] = useState('');
   // const [instrument, setInstrument] = useState<Musician['instrument']>('Guitar');
   const [session, setSession] = useState<Session | null>(null);
+  const [currentPage, setCurrentPage] = useState<'musicians' | 'bands' | 'random'>('musicians');
+
   // const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(INSTRUMENTS));
 
   useEffect(() => {
@@ -128,7 +134,43 @@ function App() {
     return <LoginPage />
   }
 
-  return <Musicians session={session} />
+  return (
+    <>
+      <nav className="bg-gray-800 p-4">
+        <ul className="flex gap-4">
+          <li>
+            <button
+              onClick={() => setCurrentPage('musicians')}
+              className={`text-white hover:text-gray-300 ${currentPage === 'musicians' ? 'font-bold' : ''}`}
+            >
+              Musicians
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => setCurrentPage('bands')}
+              className={`text-white hover:text-gray-300 ${currentPage === 'bands' ? 'font-bold' : ''}`}
+            >
+              Bands
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => setCurrentPage('random')}
+              className={`text-white hover:text-gray-300 ${currentPage === 'random' ? 'font-bold' : ''}`}
+            >
+              Random Bands
+            </button>
+          </li>
+        </ul>
+      </nav>
+      {currentPage === 'musicians' && <Musicians session={session} />}
+      {currentPage === 'bands' && <Bands session={session} />}
+      {currentPage === 'random' && <RandomBands session={session} />}
+    </>
+  );
+
+  // return <Musicians session={session} />
 
   // return (
   //   <div className="min-h-screen bg-gray-100 py-8 px-4">

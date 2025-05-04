@@ -8,7 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type Musician = {
   id: string;
   name: string;
-  instrument: 'Guitar' | 'Keys' | 'Voice' | 'Bass' | 'Other';
+  instrument: 'Guitar' | 'Keys' | 'Voice' | 'Bass' | 'Drums' | 'Other';
   created_at: string;
   user_id: string;
 };
@@ -17,11 +17,9 @@ export type Band = {
   id: string;
   name: string;
   created_at: string;
-  createdBy: string;
-  members: Musician['id'][];
+  created_by: string;
 };
 
-
-export type BandWithMusicians = Omit<Band, 'members'> & {
-  members: Musician[];
+export type BandWithMusicians = Band & {
+  musicians: Musician[];
 };

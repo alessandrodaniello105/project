@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
-import { Musician } from '../../lib/supabase';
+import { Musician, BandWithMusicians } from '../../lib/supabase';
 
-const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums','Other'] as const;
+const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums', 'Other'] as const;
 
 type Props = {
   musicians: Musician[];
-  onDelete: (id: string) => void;
-  onError: () => void;
+  onDelete?: (id: string) => void; // Optional delete function
+  bands: BandWithMusicians[];
 };
 
-export function MusicianList({ musicians, onDelete }: Props) {
+export function MusicianGroup({ musicians, onDelete }: Props) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(INSTRUMENTS));
 
   const toggleSection = (instrument: string) => {
@@ -53,6 +53,38 @@ export function MusicianList({ musicians, onDelete }: Props) {
                 <ChevronDown className="w-5 h-5 text-gray-500" />
               )}
             </button>
+            {expandedSections.has(inst) && (
+              <div className="divide-y divide-gray-200">
+                {groupedMusicians[inst].map((musician, bands) => (
+                  <div
+                    key={musician.id}
+                    className={`p-4 flex items-center justify-between ${
+                      bands.some(band => band.musician_id === musician.id) ? 'bg-orange-50' : 'bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-lg">{musician.name}</h4>
+                      {bands.band_id && (
+                        <span className="text-sm text-orange-600">(In Band)</span>
+                      )}
+                    </div>
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(musician.id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {groupedMusicians[inst].length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No {inst.toLowerCase()} players added yet.
+                  </p>
+                )}
+              </div>
+            )}
 
             {expandedSections.has(inst) && (
               <div className="divide-y divide-gray-200">
@@ -62,12 +94,14 @@ export function MusicianList({ musicians, onDelete }: Props) {
                     className="p-4 flex items-center justify-between bg-white"
                   >
                     <h4 className="text-lg">{musician.name}</h4>
-                    <button
-                      onClick={() => onDelete(musician.id)}
-                      className="text-red-600 hover:text-red-800 transition"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(musician.id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {groupedMusicians[inst].length === 0 && (

@@ -27,7 +27,7 @@ export function Bands({ session }: Props) {
         *,
         musicians (*)
       `)
-      .order('created_at', { ascending: false });
+      .order('name', { ascending: true });
 
     if (error) {
       console.error('Error fetching bands with musicians:', error);
@@ -64,18 +64,6 @@ export function Bands({ session }: Props) {
     }
   }
 
-  async function handleDeleteAll() {
-    const previousBands = bands;
-    setBands([]);
-
-    const { error } = await supabase.from('bands').delete().eq('created_by', session.user.id);
-
-    if (error) {
-      console.error('Error deleting all bands:', error);
-      setBands(previousBands);
-    }
-  }
-
   const toggleBandSection = (bandId: string) => {
     setExpandedBandSections((prev) => {
       const next = new Set(prev);
@@ -88,9 +76,7 @@ export function Bands({ session }: Props) {
     });
   };
 
-  const sortedBands = [...bands].sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  const sortedBands = [...bands].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
@@ -112,17 +98,6 @@ export function Bands({ session }: Props) {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Bands</h2>
-
-          <div className="p-4 border rounded-md cursor-pointer border-gray-300 inline-flex items-center justify-end bg-white">
-            <button
-              onClick={() => handleDeleteAll()}
-              className="text-red-600 flex hover:text-red-800 transition"
-              >
-              Delete All Bands
-              
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </div>
 
           <div className="space-y-4">
             {sortedBands.map((band) => (
