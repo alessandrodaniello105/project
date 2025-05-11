@@ -19,6 +19,7 @@ export function RandomBands({ session }: Props) {
   // const [howManyBands, setHowManyBands] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [numberOfBandsToGenerate, setNumberOfBandsToGenerate] = useState<number>(2); // Default to 2
 
   // Fetch all musicians and existing bands on component mount
   useEffect(() => {
@@ -94,18 +95,134 @@ export function RandomBands({ session }: Props) {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
-    
-    const trimmedBandName = bandName.trim();
-    
-    if (!trimmedBandName) {
-      setMessage({ type: 'error', text: 'Please enter a band name.' });
+
+    // --- 1. Input Validation ---
+    const bandsToAttempt = numberOfBandsToGenerate; // We already enforce min/max in the input UI
+    if (bandsToAttempt < 2) {
+      // This check is mostly redundant due to input constraint but good for safety
+      setMessage({ type: 'error', text: 'Currently, only generating exactly 2 bands is supported by the rules.' });
       setIsLoading(false);
       return;
     }
 
-    console.log(instrumentAvailability);
-  
-  }
+    // --- 2. Calculate Available Musicians ---
+    const availableMusicians = allMusicians.filter(m => !busyMusicianIds.has(m.id));
+    const availableDrummers = availableMusicians.filter(m => m.instrument === 'Drums');
+    const availableOthers = availableMusicians.filter(m => m.instrument !== 'Drums');
+
+    // Group available others by instrument
+    const availableOthersByInstrument = new Map<Instrument, Musician[]>();
+    availableOthers.forEach(m => {
+      if (!availableOthersByInstrument.has(m.instrument)) {
+        availableOthersByInstrument.set(m.instrument, []);
+      }
+      availableOthersByInstrument.get(m.instrument)?.push(m);
+    });
+
+    // --- 3. Check Core Rule ---
+    const distinctAvailableOtherInstruments = availableOthersByInstrument.size;
+    const canProceed = availableDrummers.length >= 2 && distinctAvailableOtherInstruments >= 3;
+
+    if (!canProceed) {
+      setMessage({
+        type: 'error',
+        text: `Cannot generate ${bandsToAttempt} bands. Requires at least 2 available drummers (found ${availableDrummers.length}) and 3 other available musicians with different instruments (found ${distinctAvailableOtherInstruments}).`
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // --- 4. Select Musicians for 2 Bands ---
+    const shuffledDrummers = shuffleArray(availableDrummers);
+    const selectedDrummers = [shuffledDrummers[0], shuffledDrummers[1]];
+
+    // Select 3 distinct other instruments randomly
+    const otherInstrumentKeys = shuffleArray(Array.from(availableOthersByInstrument.keys()));
+    const selectedOtherInstruments = otherInstrumentKeys.slice(0, 3);
+
+    // Select one musician for each chosen instrument
+    const selectedOthers: Musician[] = [];
+    try {
+        selectedOtherInstruments.forEach(instrument => {
+            const musiciansForInstrument = availableOthersByInstrument.get(instrument);
+            if (!musiciansForInstrument || musiciansForInstrument.length === 0) {
+                 // This shouldn't happen if the initial check passed, but safeguard
+                throw new Error(`No available musicians found for ${instrument} during selection.`);
+            }
+            const shuffledMusicians = shuffleArray(musiciansForInstrument);
+            selectedOthers.push(shuffledMusicians[0]);
+        });
+    } catch (error) {
+        console.error("Error selecting 'other' musicians:", error);
+        setMessage({ type: 'error', text: `Error selecting musicians: ${error instanceof Error ? error.message : 'Unknown error'}.` });
+        setIsLoading(false);
+        return;
+    }
+
+
+    // Define the bands structure
+    let bandsToCreateData: { name: string; musicians: Musician[] }[] = [];
+    // const timestamp = Date.now(); // For unique band names (no longer needed)
+
+    if (bandsToAttempt === 2) {
+      bandsToCreateData = [
+        { name: generateBandName(0), musicians: [selectedDrummers[0], selectedOthers[0], selectedOthers[1]] },
+        { name: generateBandName(1), musicians: [selectedDrummers[1], selectedOthers[2]] }
+      ];
+
+    } else { // bandsToAttempt >= 3
+      for (let i = 0; i < bandsToAttempt; i++) {
+        bandsToCreateData.push({
+          name: generateBandName(i),
+          musicians: [selectedDrummers[i], selectedOthers[i]]
+        });
+      }
+    }
+
+    // --- 5. Database Operations ---
+    const createdBandNames: string[] = [];
+    try {
+      for (const bandInfo of bandsToCreateData) {
+        // Insert Band
+        const { data: bandData, error: bandError } = await supabase
+          .from('bands')
+          .insert({ name: bandInfo.name, created_by: session.user.id })
+          .select('id')
+          .single();
+
+        if (bandError) throw new Error(`Failed to create band "${bandInfo.name}": ${bandError.message}`);
+        if (!bandData || !bandData.id) throw new Error(`Failed to create band "${bandInfo.name}" (no ID).`);
+
+        const bandId = bandData.id;
+        createdBandNames.push(bandInfo.name); // Track successful creations
+
+        // Insert Members
+        const bandMembersToInsert = bandInfo.musicians.map(musician => ({
+          band_id: bandId,
+          musician_id: musician.id,
+        }));
+
+        const { error: bandMembersError } = await supabase
+          .from('band_musicians')
+          .insert(bandMembersToInsert);
+
+        if (bandMembersError) throw new Error(`Band "${bandInfo.name}" created, but failed to add members: ${bandMembersError.message}`);
+      }
+
+      // Success!
+      setMessage({ type: 'success', text: `Successfully created ${createdBandNames.length} bands: ${createdBandNames.join(', ')}!` });
+      fetchExistingBands(); // Refresh the list to show new bands and update availability
+
+    } catch (error: unknown) {
+      console.error('Error during multiple band creation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      // Attempt to clean up if partial creation happened? (Difficult without transactions)
+      // For now, just report the error and which bands *might* have been created.
+      setMessage({ type: 'error', text: `Error creating bands: ${errorMessage}. ${createdBandNames.length > 0 ? `Successfully created: ${createdBandNames.join(', ')}.` : ''}` });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRandomize = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,80 +446,26 @@ export function RandomBands({ session }: Props) {
           </div>
         )}
 
-        <form onSubmit={handleMultipleRandomize} className="space-y-6">
-          {/* Band Name Input */}
-          {/* <div>
-            <label
-              htmlFor="bandName"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              New Band Name
-            </label>
-            <input
-              type="text"
-              id="bandName"
-              value={bandName}
-              autoComplete='false'
-              onChange={(e) => setBandName(e.target.value)}
-              className="w-full leading-[40px] px-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., The Cosmic Coders"
-              required
-            />
-          </div> */}
-
-          {/* Instrument Selection */}
-          {/* <div>
-            <span className="block text-sm font-medium text-gray-700 mb-2">
-              Select Instruments for the Band (Only available instruments are shown)
-            </span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {INSTRUMENTS.map((instrument) => {
-                 // Check availability using the memoized map
-                 const isAvailable = instrumentAvailability.get(instrument) ?? false;
-                 return (
-                  <label
-                    key={instrument}
-                    className={`flex items-center gap-2 p-3 border rounded-md transition ${ 
-                      !isAvailable
-                       ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' // Disabled style
-                       : selectedInstruments.has(instrument)
-                         ? 'bg-indigo-100 border-indigo-500 cursor-pointer' // Selected style
-                         : 'border-gray-300 hover:bg-gray-50 cursor-pointer' // Default style
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      id={instrument}
-                      checked={selectedInstruments.has(instrument)}
-                      onChange={() => handleInstrumentChange(instrument)}
-                      // Disable checkbox if not available
-                      disabled={!isAvailable}
-                      className={`form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 ${!isAvailable ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                    />
-                    <span className="flex items-center gap-1">
-                       {instrument} 
-                    </span>
-                  </label>
-                )
-              })}
-            </div>
-          </div> */}
-
+        <form onSubmit={handleMultipleRandomize} className="space-y-6 border-t pt-6 mt-6 border-gray-200">
           <div>
-            {/* Choose how many bands do you want to generate randomically */}
             <label
               htmlFor="bandCount"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              How many bands do you want to generate randomically?
+              Number of Bands to Generate (Max 2, requires `&gt;`=2 Drummers & `&gt;`=3 Others)
             </label>
 
-            <input type="text" id="bandCount" className="w-full leading-[40px] px-2" />
-
-
+            <input
+              type="number"
+              id="bandCount"
+              value={numberOfBandsToGenerate}
+              onChange={(e) => setNumberOfBandsToGenerate(Math.max(2, parseInt(e.target.value, 10) || 2))} // Ensure min 2
+              min="2" // Hardcoded max based on rule
+              className="w-full leading-[40px] px-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
           </div>
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -415,12 +478,12 @@ export function RandomBands({ session }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Randomizing...
+                  Generating...
                 </>
               ) : (
                 <>
                   <Shuffle className="w-5 h-5" />
-                  Generate Random Band
+                  Generate Multiple Bands
                 </>
               )}
             </button>
@@ -429,8 +492,21 @@ export function RandomBands({ session }: Props) {
 
       </div>
 
-
-
     </div>
   );
+}
+
+// Helper function to shuffle an array (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Helper function to generate a random band name like 'Band 1', 'Band 2', etc.
+function generateBandName(index: number) {
+  return `Band ${index + 1}`;
 } 
