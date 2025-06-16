@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Musician } from '../../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums','Other'] as const;
+const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums', 'Other'] as const;
 
 type Props = {
   musicians: Musician[];
@@ -107,29 +108,38 @@ export function MusicianList({ musicians, onDelete }: Props) {
               </div>
             </button>
 
-            {expandedSections.has(inst) && (
-              <div className="divide-y divide-gray-200">
-                {groupedMusicians[inst].map((musician) => (
-                  <div
-                    key={musician.id}
-                    className="p-4 flex items-center justify-between bg-white"
-                  >
-                    <h4 className="text-lg">{musician.name}</h4>
-                    <button
-                      onClick={() => onDelete(musician.id)}
-                      className="text-red-600 hover:text-red-800 transition"
+            <AnimatePresence initial={false}>
+              {expandedSections.has(inst) && (
+                <motion.div
+                  key={inst}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="divide-y divide-gray-200"
+                >
+                  {groupedMusicians[inst].map((musician) => (
+                    <div
+                      key={musician.id}
+                      className="p-4 flex items-center justify-between bg-white"
                     >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-                {groupedMusicians[inst].length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No {inst.toLowerCase()} players added yet.
-                  </p>
-                )}
-              </div>
-            )}
+                      <h4 className="text-lg">{musician.name}</h4>
+                      <button
+                        onClick={() => onDelete(musician.id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                  {groupedMusicians[inst].length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      No {inst.toLowerCase()} players added yet.
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ))}
       </div>

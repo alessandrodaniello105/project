@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 // import { lazy } from 'react';
 // import { PlusCircle, Trash2, Music2, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from './lib/supabase';
@@ -7,6 +7,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { Musicians } from './components/pages/Musicians';
 import { Bands } from './components/pages/Bands';
 import { RandomBands } from './components/pages/RandomBands';
+import { AnimatePresence, motion } from 'framer-motion';
 // import { BandForm } from './components/bands/BandForm';
 
 // import { MusicianForm } from './components/musicians/MusicianForm';
@@ -164,9 +165,48 @@ function App() {
           </li>
         </ul>
       </nav>
-      {currentPage === 'musicians' && <Musicians session={session} />}
-      {currentPage === 'bands' && <Bands session={session} />}
-      {currentPage === 'random' && <RandomBands session={session} />}
+      <AnimatePresence mode="wait">
+        {currentPage === 'musicians' && (
+          <motion.div
+            key="musicians"
+            initial={{ opacity: 0}}
+            animate={{ opacity: 1}}
+            exit={{ opacity: 0}}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <Musicians session={session} />
+          </motion.div>
+        )}
+
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {currentPage === 'bands' && (
+          <motion.div
+            key="bands"
+            initial={{ opacity: 0}}
+            animate={{ opacity: 1}}
+            exit={{ opacity: 0}}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <Bands session={session} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {currentPage === 'random' && (
+          <motion.div
+            key="random"
+            initial={{ opacity: 0}}
+            animate={{ opacity: 1}}
+            exit={{ opacity: 0}}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <RandomBands session={session} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 

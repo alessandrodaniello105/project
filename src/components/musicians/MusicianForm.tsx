@@ -1,6 +1,7 @@
 import { PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Musician, supabase } from '../../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums', 'Other'] as const;
 
@@ -49,8 +50,22 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-center">
-      <div className="flex flex-col md:flex-row gap-4 w-full">
-        <div className="flex-1">
+      <AnimatePresence initial={false}>
+      <motion.div
+        layout
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.3 }}
+         className="flex flex-col md:flex-row gap-4 w-full"
+      >
+        <AnimatePresence initial={false}>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          >
           <label htmlFor="musicianName" className="block text-sm font-medium text-gray-700 mb-1">
             Name
           </label>
@@ -63,9 +78,15 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
             className="w-full rounded-md px-2 border-gray-300 leading-[40px] shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             required
           />
-        </div>
+        </motion.div>
+        </AnimatePresence>
         
-        <div className="flex-1">
+        <AnimatePresence initial={false}>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }} className="flex-1">
           <label htmlFor="instrument" className="block text-sm font-medium text-gray-700 mb-1">
             Instrument
           </label>
@@ -81,16 +102,24 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
               </option>
             ))}
           </select>
-        </div>
-      </div>
-      
-      <button
+        </motion.div>
+        </AnimatePresence>
+      </motion.div>
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+      <motion.button
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
         type="submit"
         className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center gap-2"
       >
         <PlusCircle className="w-5 h-5" />
         Add Musician
-      </button>
+      </motion.button>
+      </AnimatePresence>
     </form>
   );
 }
