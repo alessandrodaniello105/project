@@ -91,7 +91,7 @@ export function MusicianList({ musicians, onDelete }: Props) {
                 <button
                   type="button"
                   title={`Delete all ${inst} musicians`}
-                  className="text-red-500 text-center mx-10 hover:text-red-700 p-1 rounded transition"
+                  className="text-red-500 text-center mx-10 hover:text-red-700 p-1 transition flex border border-red-700 rounded-full w-[25px] h-[25px] justify-center items-center"
                   onClick={e => {
                     e.stopPropagation();
                     groupedMusicians[inst].forEach(musician => onDelete(musician.id));
