@@ -48,7 +48,7 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-4 items-end">
+    <form onSubmit={handleSubmit} className="flex flex-col  md:flex-row gap-4 items-center">
     <div className="flex-1">
       <label htmlFor="musicianName" className="block text-sm font-medium text-gray-700 mb-1">
         Name
@@ -72,7 +72,7 @@ export function MusicianForm({ onMusicianAdded, userId }: Props) {
         id="instrument"
         value={instrument}
         onChange={(e) => setInstrument(e.target.value as Musician['instrument'])}
-        className="w-full rounded-md h-10 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        className="w-32 md:w-full rounded-md h-10 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
       >
         {INSTRUMENTS.map((inst) => (
           <option key={inst} value={inst}>
