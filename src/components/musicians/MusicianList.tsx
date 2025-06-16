@@ -12,6 +12,7 @@ type Props = {
 
 export function MusicianList({ musicians, onDelete }: Props) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(INSTRUMENTS));
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   const toggleSection = (instrument: string) => {
     setExpandedSections(prev => {
@@ -30,9 +31,27 @@ export function MusicianList({ musicians, onDelete }: Props) {
     return acc;
   }, {} as Record<Musician['instrument'], Musician[]>);
 
+  const handleDeleteAll = () => {
+    musicians.forEach(musician => onDelete(musician.id));
+    setShowDeleteAllModal(false);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4">Musicians by Instrument</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Musicians by Instrument</h2>
+        <button
+          type="button"
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition text-sm font-semibold"
+          onClick={() => {
+            if (musicians.length === 0) return;
+            setShowDeleteAllModal(true);
+          }}
+          disabled={musicians.length === 0}
+        >
+          Delete All Musicians
+        </button>
+      </div>
 
       <div className="space-y-4 md:flex md:flex-wrap md:gap-4 justify-around">
         {INSTRUMENTS.map((inst) => (
@@ -47,11 +66,25 @@ export function MusicianList({ musicians, onDelete }: Props) {
                   ({groupedMusicians[inst].length})
                 </span>
               </div>
-              {expandedSections.has(inst) ? (
-                <ChevronUp className="w-5 h-5 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500" />
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  title={`Delete all ${inst} musicians`}
+                  className="text-red-500 hover:text-red-700 p-1 rounded transition"
+                  onClick={e => {
+                    e.stopPropagation();
+                    groupedMusicians[inst].forEach(musician => onDelete(musician.id));
+                  }}
+                  disabled={groupedMusicians[inst].length === 0}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                {expandedSections.has(inst) ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
             </button>
 
             {expandedSections.has(inst) && (
@@ -80,6 +113,30 @@ export function MusicianList({ musicians, onDelete }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Basic Custom Modal for Delete All Confirmation */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-red-700">Confirm Deletion</h3>
+            <p className="mb-6">Are you sure you want to delete <b>ALL</b> musicians? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"
+                onClick={() => setShowDeleteAllModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-semibold"
+                onClick={handleDeleteAll}
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
