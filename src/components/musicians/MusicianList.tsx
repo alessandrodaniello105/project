@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Musician } from '../../lib/supabase';
 
@@ -13,6 +13,26 @@ type Props = {
 export function MusicianList({ musicians, onDelete }: Props) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(INSTRUMENTS));
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      if (isDesktop) {
+        setExpandedSections(new Set(INSTRUMENTS));
+      } else {
+        setExpandedSections(new Set());
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Listen for resize events
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleSection = (instrument: string) => {
     setExpandedSections(prev => {
@@ -53,7 +73,7 @@ export function MusicianList({ musicians, onDelete }: Props) {
         </button>
       </div>
 
-      <div className="space-y-4 md:flex md:flex-wrap md:gap-4 justify-around">
+      <div className="space-y-4 md:flex md:flex-wrap md:gap-4 justify-around align-baseline">
         {INSTRUMENTS.map((inst) => (
           <div key={inst} className="border rounded-lg overflow-hidden md:w-72">
             <button
@@ -70,14 +90,14 @@ export function MusicianList({ musicians, onDelete }: Props) {
                 <button
                   type="button"
                   title={`Delete all ${inst} musicians`}
-                  className="text-red-500 hover:text-red-700 p-1 rounded transition"
+                  className="text-red-500 text-center mx-10 hover:text-red-700 p-1 rounded transition"
                   onClick={e => {
                     e.stopPropagation();
                     groupedMusicians[inst].forEach(musician => onDelete(musician.id));
                   }}
                   disabled={groupedMusicians[inst].length === 0}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <span><b>X</b></span>
                 </button>
                 {expandedSections.has(inst) ? (
                   <ChevronUp className="w-5 h-5 text-gray-500" />
