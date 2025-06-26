@@ -1,6 +1,8 @@
 import { PlusCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BandWithMusicians, Musician, supabase } from '../../lib/supabase';
+import AddBandButton from './addBandButton';
+
 
 const INSTRUMENTS = ['Guitar', 'Keys', 'Voice', 'Bass', 'Drums', 'Other'] as const;
 
@@ -15,11 +17,14 @@ export function BandForm({ onBandAdded, musicians, bands, userId }: Props) {
   const [name, setName] = useState('');
   const [selectedMusicians, setSelectedMusicians] = useState<Musician['id'][]>([]);
   const [disabledMusicians, setDisabledMusicians] = useState<Set<Musician['id']>>(new Set());
+  const [childIsVisible, setChildIsVisible] = useState(true);
 
   useEffect(() => {
     // Update disabled musicians when selectedMusicians changes
     const newDisabledMusicians = new Set<Musician['id']>();
     const selectedInstruments = new Set<Musician['instrument']>();
+    // const addBandButtonRef = useRef(null);
+
 
     selectedMusicians.forEach(musicianId => {
       const musician = musicians.find(m => m.id === musicianId);
@@ -128,6 +133,10 @@ export function BandForm({ onBandAdded, musicians, bands, userId }: Props) {
     return acc;
   }, {} as Record<Musician['instrument'], { available: Musician[], busy: Musician[] }>);
 
+  const handleVisibility = useCallback((visible: boolean) => {
+    setChildIsVisible(visible);
+  }, []);
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex gap-4 items-end">
@@ -149,14 +158,17 @@ export function BandForm({ onBandAdded, musicians, bands, userId }: Props) {
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center gap-2"
-        >
-          <PlusCircle className="w-5 h-5" />
-          Add Band
-        </button>
+        <AddBandButton onVisibilityChange={handleVisibility} className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center gap-2" />
       </div>
+
+      {/* Sticky AddBandButton for when main button is not visible */}
+      {!childIsVisible && (
+        <div className="fixed bottom-4 left-0 w-full flex justify-center z-50 pointer-events-none">
+          <div className="pointer-events-auto">
+            <AddBandButton className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg" />
+          </div>
+        </div>
+      )}
 
       {/* Group by instrument */}
       {INSTRUMENTS.map((instrument) => (
